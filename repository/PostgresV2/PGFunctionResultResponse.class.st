@@ -36,3 +36,9 @@ PGFunctionResultResponse >> receiveFrom: connection [
 	].
 
 ]
+
+{ #category : #accessing }
+PGFunctionResultResponse >> result [
+
+	^result
+]

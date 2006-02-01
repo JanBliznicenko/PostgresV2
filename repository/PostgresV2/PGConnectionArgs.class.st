@@ -15,16 +15,26 @@ Class {
 
 { #category : #'instance creation' }
 PGConnectionArgs class >> hostname: host portno: port databaseName: database userName: user password: pwd [
-
-	^self new setHostname: host portno: port databaseName: database userName: user password: pwd extraArgs: nil debugTty: nil
-
+	^(self new)
+		hostname: host;
+		portno: port;
+		databaseName: database;
+		userName: user;
+		password: pwd;
+		yourself
 ]
 
 { #category : #'instance creation' }
 PGConnectionArgs class >> hostname: host portno: port databaseName: database userName: user password: pwd extraArgs: extra debugTty: debug [
-
-	^self new setHostname: host portno: port databaseName: database userName: user password: pwd extraArgs: extra debugTty: debug
-
+	^(self new)
+		hostname: host;
+		portno: port;
+		databaseName: database;
+		userName: user;
+		password: pwd;
+		extraArgs: extra;
+		debugTty: debug;
+		yourself
 ]
 
 { #category : #accessing }
@@ -33,8 +43,18 @@ PGConnectionArgs >> databaseName [
 ]
 
 { #category : #accessing }
+PGConnectionArgs >> databaseName: anObject [
+	databaseName := anObject
+]
+
+{ #category : #accessing }
 PGConnectionArgs >> debugTty [
 	^debugTty
+]
+
+{ #category : #accessing }
+PGConnectionArgs >> debugTty: anObject [
+	debugTty := anObject
 ]
 
 { #category : #accessing }
@@ -43,8 +63,18 @@ PGConnectionArgs >> extraArgs [
 ]
 
 { #category : #accessing }
+PGConnectionArgs >> extraArgs: anObject [
+	extraArgs := anObject
+]
+
+{ #category : #accessing }
 PGConnectionArgs >> hostname [
 	^hostname
+]
+
+{ #category : #accessing }
+PGConnectionArgs >> hostname: anObject [
+	hostname := anObject
 ]
 
 { #category : #accessing }
@@ -53,8 +83,18 @@ PGConnectionArgs >> password [
 ]
 
 { #category : #accessing }
+PGConnectionArgs >> password: anObject [
+	password := anObject
+]
+
+{ #category : #accessing }
 PGConnectionArgs >> portno [
 	^portno
+]
+
+{ #category : #accessing }
+PGConnectionArgs >> portno: anObject [
+	portno := anObject
 ]
 
 { #category : #'private-initialize' }
@@ -73,4 +113,9 @@ PGConnectionArgs >> setHostname: host portno: port databaseName: database userNa
 { #category : #accessing }
 PGConnectionArgs >> userName [
 	^userName
+]
+
+{ #category : #accessing }
+PGConnectionArgs >> userName: anObject [
+	userName := anObject
 ]

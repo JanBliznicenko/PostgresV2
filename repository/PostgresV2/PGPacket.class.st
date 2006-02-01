@@ -2,8 +2,7 @@ Class {
 	#name : #PGPacket,
 	#superclass : #Object,
 	#classVars : [
-		'PacketClasses',
-		'PacketTypes'
+		'PacketClasses'
 	],
 	#category : #PostgresV2
 }
@@ -12,45 +11,33 @@ Class {
 PGPacket class >> initialize [
 	"PGPacket initialize"
 
-	| types |
-
-	PacketClasses := OrderedCollection new.
-	types := ReadWriteStream on: String new.
-	#(
-		( $K 'PGBackendKeyData' )
-		( $R 'PGAuthentication' )
-		( $C 'PGCompletedResponse' )
-		( $G 'PGCopyInResponse' )
-		( $H 'PGCopyOutResponse' )
-		( $P 'PGCursorResponse' )
-		( $I 'PGEmptyQueryResponse' )
-		( $E 'PGErrorResponse' )
-		( $V 'PGFunctionResultResponse' )
-		( $N 'PGNoticeResponse' )
-		( $A 'PGNotificationResponse' )
-		( $Z 'PGReadyForQuery' )
-		( $T 'PGRowDescription' )
-		( $D 'PGAsciiRow' )
-		( $B 'PGBinaryRow' )
-	) do: [:each |
-		PacketClasses add: (Smalltalk classNamed: (each at: 2)).
-		types nextPut: (each at: 1).
-	].
-	PacketTypes := types contents.
-
+	PacketClasses := IdentityDictionary new
+		at: $K put: PGBackendKeyData;
+		at: $R put: PGAuthentication;
+		at: $C put: PGCompletedResponse;
+		at: $G put: PGCopyInResponse;
+		at: $H put: PGCopyOutResponse;
+		at: $P put: PGCursorResponse;
+		at: $I put: PGEmptyQueryResponse;
+		at: $E put: PGErrorResponse;
+		at: $V put: PGFunctionResultResponse;
+		at: $N put: PGNoticeResponse;
+		at: $A put: PGNotificationResponse;
+		at: $Z put: PGReadyForQuery;
+		at: $T put: PGRowDescription;
+		at: $D put: PGAsciiRow;
+		at: $B put: PGBinaryRow;
+		yourself
 ]
 
 { #category : #factory }
 PGPacket class >> newPacket: typeCode [
+	| packetClass |
 
-	| index |
-
-	index := PacketTypes indexOf: typeCode.
-	^index > 0
-		ifTrue: [ (PacketClasses at: index) new ]
-		ifFalse: [ nil ]
-
-
+	packetClass := PacketClasses at: typeCode ifAbsent: [nil].
+	^packetClass isNil
+		ifTrue: [nil]
+		ifFalse: [packetClass new]
 ]
 
 { #category : #accessing }
@@ -77,6 +64,16 @@ PGPacket >> readBitmap: nbits from: connection [
 	].
 	^bitmap
 
+]
+
+{ #category : #receiving }
+PGPacket >> readByteN: n from: connection [
+
+	| bytes |
+
+	bytes := ByteArray new: n.
+	1 to: n do: [:i | bytes byteAt: i put: connection next codePoint].
+	^bytes
 ]
 
 { #category : #receiving }

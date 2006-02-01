@@ -92,13 +92,13 @@ PGActiveObject >> processEvent: event [
 
 	| nextState eventName eventNameString traceText |
 
-	eventName := event class == Symbol ifTrue: [event] ifFalse: [event eventName].
+	eventName := event isSymbol ifTrue: [event] ifFalse: [event eventName].
 	nextState := (self stateTransitionTable at: state)
 		at: eventName
 		ifAbsent: [ #CantHappen ].
 
 	trace >= 8 ifTrue: [
-		eventNameString := event class == Symbol ifTrue: [event asString] ifFalse: [event eventName].
+		eventNameString := event isSymbol ifTrue: [event asString] ifFalse: [event eventName].
 		traceText := nextState = #EventIgnored
 			ifTrue: [ state asString, ' IGNORE ', eventNameString ]
 			ifFalse: [ state asString, '-->', nextState asString, ' on ', eventNameString ].

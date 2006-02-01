@@ -23,10 +23,26 @@ TestPGConnection >> asFloat8Arg: aFloat [
 			word2 := tmp.
 		].
 	arg := ByteArray new: 8.
-	arg unsignedLongAt: 1 put: word1.
-	arg unsignedLongAt: 5 put: word2.
+	arg at: 1 put: ((word1 bitShift: -24) bitAnd: 16rFF).
+	arg at: 2 put: ((word1 bitShift: -16) bitAnd: 16rFF).
+	arg at: 3 put: ((word1 bitShift: -8) bitAnd: 16rFF).
+	arg at: 4 put: ((word1 bitShift: 0) bitAnd: 16rFF).
+	arg at: 5 put: ((word2 bitShift: -24) bitAnd: 16rFF).
+	arg at: 6 put: ((word2 bitShift: -16) bitAnd: 16rFF).
+	arg at: 7 put: ((word2 bitShift: -8) bitAnd: 16rFF).
+	arg at: 8 put: ((word2 bitShift: 0) bitAnd: 16rFF).
 	^ arg
 
+]
+
+{ #category : #private }
+TestPGConnection >> asFloat8ArgVW: aFloat [
+	"Convert aFloat to a ByteArray for use as a function call argument."
+
+	| arg |
+	arg := ByteArray new: 8.
+	1 to: 8 do: [:i | arg at: i put: (aFloat basicAt: 8 - i + 1)].
+	^arg
 ]
 
 { #category : #private }
@@ -152,6 +168,38 @@ TestPGConnection >> executeAll: queries withDelayForMilliseconds: millisecondDel
 		].
 	].
 	conn terminate.
+]
+
+{ #category : #private }
+TestPGConnection >> floatFromByteArray: aByteArray [
+	"Convert aByteArray to a Float."
+
+	| word1 word2 aFloat |
+
+	word1 := (aByteArray at: 1) bitShift: 24.
+	word1 := word1 bitOr: ((aByteArray at: 2) bitShift: 16).
+	word1 := word1 bitOr: ((aByteArray at: 3) bitShift: 8).
+	word1 := word1 bitOr: ((aByteArray at: 4) bitShift: 0).
+	word2 := (aByteArray at: 5) bitShift: 24.
+	word2 := word2 bitOr: ((aByteArray at: 6) bitShift: 16).
+	word2 := word2 bitOr: ((aByteArray at: 7) bitShift: 8).
+	word2 := word2 bitOr: ((aByteArray at: 8) bitShift: 0).
+
+	aFloat := 0.0.
+	aFloat basicAt: 1 put: word1.
+	aFloat basicAt: 2 put: word2.
+	^aFloat
+]
+
+{ #category : #private }
+TestPGConnection >> floatFromByteArrayVW: aByteArray [
+	"Convert aByteArray to a Float."
+
+	| aFloat |
+	aFloat := ByteArray new: 8.
+	1 to: 8 do: [:i | aFloat at: 8 - i + 1 put: (aByteArray at: i)].
+	aFloat changeClassTo: Double.
+	^aFloat
 ]
 
 { #category : #private }
@@ -537,7 +585,8 @@ TestPGConnection >> testFieldConverter2 [
 	self assert: ((data at: 9) - 11.11) abs < 0.0001.
 	self assert: ((data at: 10) - 22.22) abs < 0.0001.
 	self assert: ((data at: 11) - 33.33) abs < 0.0001.
-	self assert: (data at: 12) = (DateAndTime year: 2001 month: 1 day: 1 hour: 0 minute: 0 second: 0).
+	"self assert: (data at: 12) = (DateAndTime year: 2001 month: 1 day: 1 hour: 0 minute: 0 second: 0)."
+	self assert: (data at: 12) = (Date newDay: 1 month: 1 year: 2001).
 	self assert: (data at: 13) = (Time fromSeconds: (4*60*60) + (5*60) + 6).
 	self assert: (data at: 14) = 'abcd'.
 
@@ -572,7 +621,8 @@ TestPGConnection >> testFieldConverter3 [
 	self assert: ((d at: 'aFloat4' asLowercase) - 11.11) abs < 0.0001.
 	self assert: ((d at: 'aFloat8' asLowercase) - 22.22) abs < 0.0001.
 	self assert: ((d at: 'aNumeric' asLowercase) - 33.33) abs < 0.0001.
-	self assert: (d at: 'aDate' asLowercase) = (DateAndTime year: 2001 month: 1 day: 1 hour: 0 minute: 0 second: 0).
+	"self assert: (d at: 'aDate' asLowercase) = (DateAndTime year: 2001 month: 1 day: 1 hour: 0 minute: 0 second: 0)."
+	self assert: (d at: 'aDate' asLowercase) = (Date newDay: 1 month: 1 year: 2001).
 	self assert: (d at: 'aTime' asLowercase) = (Time fromSeconds: (4*60*60) + (5*60) + 6).
 	self assert: (d at: 'aText' asLowercase) = 'abcd'.
 
@@ -607,9 +657,10 @@ TestPGConnection >> testFunctionCall1 [
 TestPGConnection >> testFunctionCall2 [
 
 	| arg result |
-	arg := self asFloat8Arg: 1.0.
+	arg := self asFloat8Arg: -1.0.
 	result :=  self functionCall: self oidAbs arguments: (OrderedCollection with: arg).
 	self assert: result functionResult notNil.
+	self assert: (self floatFromByteArray: result functionResult result) = 1.0.
 
 ]
 
@@ -620,6 +671,7 @@ TestPGConnection >> testFunctionCall3 [
 	arg := self asFloat8Arg: 1.0.
 	result := self functionCall: self oidSqrt arguments: (OrderedCollection with: arg).
 	self assert: result functionResult notNil.
+	self assert: (self floatFromByteArray: result functionResult result) = 1.0.
 
 ]
 

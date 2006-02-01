@@ -65,10 +65,8 @@ PGFunctionCall >> writeOn: aStream [
 	self writeString: '' on: aStream.
 	self writeInt32: self oid on: aStream.
 	self writeInt32: self arguments size on: aStream.
-	self arguments do: [:each |
-		self writeInt32: each size on: aStream.
-		"each printOn: aStream."
-		1 to: each size do: [:b | aStream nextPut: (Character value: b)].
-	].
-
+	self arguments do: [:arg |
+		self writeInt32: arg size on: aStream.
+		arg do: [:b | self writeByte: (Character value: b) on: aStream].
+	]
 ]

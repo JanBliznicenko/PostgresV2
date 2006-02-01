@@ -25,8 +25,8 @@ Class {
 		'fieldConverters'
 	],
 	#classVars : [
-		'DefaultConnectionArgs',
-		'DefaultTraceLevel'
+		'DefaultTraceLevel',
+		'DefaultConnectionArgs'
 	],
 	#category : #PostgresV2
 }
@@ -37,21 +37,20 @@ PGConnection class >> buildDefaultConnectionArgs [
 	^ PGConnectionArgs
 		hostname: 'localhost'
 		portno: 5432
-		databaseName: 'mydb'
+		databaseName: 'test'
 		userName: 'postgres'
-		password: nil
+		password: 'secret'
 
 ]
 
 { #category : #initialization }
 PGConnection class >> buildDefaultFieldConverters [
+	"The type oid's can be found using:
+		SELECT oid,typname from pg_type
+	Also, see the source code file:
+		.../src/include/catalog/pg_type.h
 	"
-   790 | money
-   791 | _money
-  1184 | timestamp
-  1185 | _timestamp
-	"
-	| converters dateBlock timeBlock |
+	| converters dateBlock timestampBlock timetzBlock timestamptzBlock |
 
 	converters := IdentityDictionary new.
 
@@ -62,24 +61,58 @@ PGConnection class >> buildDefaultFieldConverters [
 		do: [:each | converters at: each put: [:s | s]].
 
 	#(20 "int8" 21 "int2" 23 "int4" 1005 "_int2" 1007 "_int4" 1016 "_int8")
-		do: [:each | converters at: each put: [:s | s asInteger]].
+		do: [:each | converters at: each put: [:s | Number readFrom: (ReadStream on: s)]].
 
 	#(700 "float4" 701 "float8" 1021 "_float4" 1022 "_float8" 1700 "numeric")
-		do: [:each | converters at: each put: [:s | Float readFrom: s]].
+		do: [:each | converters at: each put: [:s | (Number readFrom: (ReadStream on: s)) asFloat]].
 
 	dateBlock :=
-		[:s | | list |
-			list := (s subStrings: '-') collect:[:i | i asInteger].
-			DateAndTime year: (list at: 1) month: (list at: 2) day: (list at: 3) hour: 0 minute: 0 second: 0].
+		[:s | Date
+				newDay: (s copyFrom: 9 to: 10) asInteger
+				month: (s copyFrom: 6 to: 7) asInteger
+				year: (s copyFrom: 1 to: 4) asInteger].
 	#(1082 "date" 1182 "_date")
 		do: [:each | converters at: each put: dateBlock].
 
-	timeBlock :=
+	#(1083 "time" 1183 "_time")
+		do: [:each | converters at: each put: [:s | Time readFrom: (ReadStream on: s)]].
+
+	timestampBlock :=
+		[:s |	DateAndTime
+				year: (s copyFrom: 1 to: 4) asInteger
+				month: (s copyFrom: 6 to: 7) asInteger
+				day: (s copyFrom: 9 to: 10) asInteger
+				hour: (s copyFrom: 12 to: 13) asInteger
+				minute: (s copyFrom: 15 to: 16) asInteger
+				second: (s copyFrom: 18 to: 19) asInteger].
+	#(1114 "timestamp" 1115 "_timestamp")
+		do: [:each | converters at: each put: timestampBlock].
+
+	timetzBlock :=
 		[:s | | list |
 			list := (s subStrings: ':') collect:[:i | i asInteger].
 			Time fromSeconds: ((list at: 1) * 3600) + ((list at: 2) * 60) + (list at: 3)].
-	#(1083 "time" 1183 "_time")
-		do: [:each | converters at: each put: timeBlock].
+	#(1266 "timetz" 1270 "_timetz")
+		do: [:each | converters at: each put: timetzBlock].
+
+	timestamptzBlock :=
+		[:s | | direction offset |
+			direction := (s charAt: 23) = $- ifTrue: [-1] ifFalse: [1].
+			offset := Duration
+				days: 0
+				hours: (s copyFrom: 21 to: 22) asInteger * direction
+				minutes: (s copyFrom: 24 to: 25) asInteger * direction
+				seconds: 0.
+			DateAndTime
+				year: (s copyFrom: 1 to: 4) asInteger
+				month: (s copyFrom: 6 to: 7) asInteger
+				day: (s copyFrom: 9 to: 10) asInteger
+				hour: (s copyFrom: 12 to: 13) asInteger
+				minute: (s copyFrom: 15 to: 16) asInteger
+				second: (s copyFrom: 18 to: 19) asInteger
+				offset: offset].
+	#(1184 "timestamptz " 1185 "_timestamptz")
+		do: [:each | converters at: each put: timestamptzBlock].
 
 	^ converters
 
@@ -93,7 +126,12 @@ PGConnection class >> buildStateTransitionTable [
 	(Created (
 		(Startup Startup)))
 	(Startup (
+		(AuthenticationKerberosV4 UnsupportedAuthentication)
+		(AuthenticationKerberosV5 UnsupportedAuthentication)
 		(AuthenticationCleartextPassword SendingCleartextPassword)
+		(AuthenticationCryptPassword UnsupportedAuthentication)
+		(AuthenticationMD5Password	SendingMD5Password)
+		(AuthenticationSCMCredential UnsupportedAuthentication)
 		(AuthenticationOk AuthenticationOk)
 		(ConnectionFailed ConnectionFailed)
 		(Terminate Terminated)
@@ -102,6 +140,12 @@ PGConnection class >> buildStateTransitionTable [
 		(AuthenticationOk AuthenticationOk)
 		(Terminate Terminated)
 		(ErrorResponse TerminalError)))
+	(SendingMD5Password (
+		(AuthenticationOk AuthenticationOk)
+		(Terminate Terminated)
+		(ErrorResponse TerminalError)))
+	(UnsupportedAuthentication (
+		(Terminate Terminated)))
 	(AuthenticationOk (
 		(BackendKeyData GotBackendKeyData)
 		(Terminate Terminated)
@@ -355,6 +399,8 @@ PGConnection >> copyStream: aStream [
 { #category : #api }
 PGConnection >> execute: sqlString [
 
+	trace >= 2 ifTrue: [self log: 'execute' text: sqlString].
+
 	self isConnected ifFalse: [ self error: 'Connection not valid' ].
 
 	sql := sqlString.
@@ -515,6 +561,9 @@ PGConnection >> receivePacket [
 	| typeCode packet |
 
 	typeCode := self next.
+	trace >= 5
+		ifTrue: [ self log: 'packet typeCode=' text: typeCode printString ].
+
 	packet := PGPacket newPacket: typeCode.
 
 	packet == nil
@@ -719,6 +768,18 @@ PGConnection >> stSendingCleartextPassword: event [
 ]
 
 { #category : #'private-states' }
+PGConnection >> stSendingMD5Password: event [ 
+	"MD5 authentication as explain in http://archives.postgresql.org/pgsql-novice/2003-05/msg00305.php"
+	| hashedCredentials hashedMessage |
+
+	hashedCredentials := (MD5 hashMessage: (connectionArgs password, connectionArgs userName)) hex asLowercase.
+	hashedMessage := 'md5', (MD5 hashMessage: (hashedCredentials, event salt asString)) hex asLowercase.
+
+	self	sendPacket: (PGPasswordPacket password: hashedMessage) on: socket.
+
+]
+
+{ #category : #'private-states' }
 PGConnection >> stStartup: event [
 
 	self resetResult.
@@ -747,6 +808,15 @@ PGConnection >> stTerminated: event [
 
 ]
 
+{ #category : #'private-states' }
+PGConnection >> stUnsupportedAuthentication: event [
+
+	"result errorResponse: 'Unsupported authentication method: ', event eventName."
+
+	PGUnsupportedAuthentication signal: 'Unsupported authentication method: ', event eventName.
+
+]
+
 { #category : #api }
 PGConnection >> startup [
 
@@ -754,7 +824,7 @@ PGConnection >> startup [
 		self connectionArgs: self class defaultConnectionArgs.
 	].
 	self queueEvent: #Startup.
-	self saProcessEventsUntil: #(ReadyForQuery ConnectionFailed TerminalError).
+	self saProcessEventsUntil: #(ReadyForQuery ConnectionFailed TerminalError UnsupportedAuthentication).
 	^ result
 
 ]
