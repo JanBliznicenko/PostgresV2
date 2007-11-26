@@ -8,7 +8,8 @@ Class {
 		'userName',
 		'password',
 		'extraArgs',
-		'debugTty'
+		'debugTty',
+		'clientEncoding'
 	],
 	#category : #PostgresV2
 }
@@ -35,6 +36,16 @@ PGConnectionArgs class >> hostname: host portno: port databaseName: database use
 		extraArgs: extra;
 		debugTty: debug;
 		yourself
+]
+
+{ #category : #'as yet unclassified' }
+PGConnectionArgs >> clientEncoding [
+	^ clientEncoding
+]
+
+{ #category : #'as yet unclassified' }
+PGConnectionArgs >> clientEncoding: aSymbol [
+	clientEncoding := aSymbol
 ]
 
 { #category : #accessing }

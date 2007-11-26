@@ -22,7 +22,8 @@ Class {
 		'result',
 		'connectionArgs',
 		'notificationSubscribers',
-		'fieldConverters'
+		'fieldConverters',
+		'sqlStringConverter'
 	],
 	#classVars : [
 		'DefaultTraceLevel',
@@ -289,6 +290,22 @@ PGConnection >> cancelRequest [
 
 ]
 
+{ #category : #'as yet unclassified' }
+PGConnection >> clientEncoding: aSymbol [
+	sqlStringConverter := [
+		:sqlString| 
+		sqlString convertToEncoding: aSymbol
+	].
+	#(25 1043) do: [
+		:each| 
+		self fieldConverters  at: each put: [
+			:s | 
+			s convertFromEncoding: aSymbol
+		]
+	].	
+
+]
+
 { #category : #'private-actions' }
 PGConnection >> closeSocket [
 
@@ -403,7 +420,7 @@ PGConnection >> execute: sqlString [
 
 	self isConnected ifFalse: [ self error: 'Connection not valid' ].
 
-	sql := sqlString.
+	sql := sqlStringConverter value: sqlString.
 	self queueEvent: #Query.
 	self saProcessEventsUntil: #(ReadyForQuery ConnectionFailed).
 
@@ -464,6 +481,7 @@ PGConnection >> initialize [
 	self fieldConverters: self class buildDefaultFieldConverters.
 	result := PGResult on: self.
 
+	sqlStringConverter := [:sqlString| sqlString].
 	"^ self"
 
 ]
@@ -822,6 +840,9 @@ PGConnection >> startup [
 
 	self connectionArgs isNil ifTrue: [
 		self connectionArgs: self class defaultConnectionArgs.
+	].
+	self connectionArgs clientEncoding ifNotNil: [
+		self clientEncoding: self connectionArgs clientEncoding.
 	].
 	self queueEvent: #Startup.
 	self saProcessEventsUntil: #(ReadyForQuery ConnectionFailed TerminalError UnsupportedAuthentication).
