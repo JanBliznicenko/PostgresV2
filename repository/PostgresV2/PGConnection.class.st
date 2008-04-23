@@ -432,40 +432,6 @@ PGConnection >> execute: sqlString [
 
 ]
 
-{ #category : #api }
-PGConnection >> execute: sqlString withRowBlock: aRowBlock [
-	"Iterate thru resultset with block (for each row) without loading all bulk resultset data into memory (internal arrays). Implemented by database CURSORs.
-	Row block has 2 parameters: 
-		1) row description (PGRowDescription - column names, data types etc.)
-		2) row data (OrderedCollection)"
-	| cursorName rslt rowDesc rows |
-	cursorName := 'squeakTempCursor', Time now nanoSecond asString.
-	self executeAndCheckResult: 'BEGIN WORK'.
-	[ 	self executeAndCheckResult: 'DECLARE ', cursorName, ' CURSOR FOR ', sqlString asString.
-		[ 
-			[	rslt := self executeAndCheckResult: 'FETCH FORWARD 5000 FROM ', cursorName.
-				rowDesc := rslt resultSets first rowDescription.
-				rows := rslt resultSets first rows.
-				rows size > 0.
-			] whileTrue: [
-				rows do: [ :row | aRowBlock value: rowDesc value: row data ].				
-				].						
-		] ensure: [ self executeAndCheckResult: 'CLOSE ', cursorName ]
-	] ensure: [ self executeAndCheckResult: 'COMMIT WORK' ].
-	
-
-]
-
-{ #category : #api }
-PGConnection >> executeAndCheckResult: sqlString [
-	"Same as execute: but check responce - throw exception if error in responce" 
-	| res |
-	res := self execute: sqlString.
-	(res errorResponse isKindOf: PGErrorResponse) ifTrue: [ Error signal: res errorResponse value ].
-	^ res.
-
-]
-
 { #category : #accessing }
 PGConnection >> fieldConverterAt: typeOid [
 	^ fieldConverters at: typeOid ifAbsent: [nil]
@@ -877,6 +843,8 @@ PGConnection >> startup [
 	].
 	self connectionArgs clientEncoding ifNotNil: [
 		self clientEncoding: self connectionArgs clientEncoding.
+	] ifNil: [
+		self clientEncoding: #utf8
 	].
 	self queueEvent: #Startup.
 	self saProcessEventsUntil: #(ReadyForQuery ConnectionFailed TerminalError UnsupportedAuthentication).
