@@ -61,7 +61,7 @@ PGConnection class >> buildDefaultFieldConverters [
 	#(18 "char" 1002 "_char" 1042 "bpchar")
 		do: [:each | converters at: each put: [:s | s]].
 
-	#(20 "int8" 21 "int2" 23 "int4" 1005 "_int2" 1007 "_int4" 1016 "_int8")
+	#(20 "int8" 21 "int2" 23 "int4" 1005 "_int2" "1007" "_int4" 1016 "_int8")
 		do: [:each | converters at: each put: [:s | Number readFrom: (ReadStream on: s)]].
 
 	#(700 "float4" 701 "float8" 1021 "_float4" 1022 "_float8" 1700 "numeric")
@@ -114,6 +114,13 @@ PGConnection class >> buildDefaultFieldConverters [
 				offset: offset].
 	#(1184 "timestamptz " 1185 "_timestamptz")
 		do: [:each | converters at: each put: timestamptzBlock].
+		
+	#(1007)
+		do: [ :each | converters at: each put: 
+			[ :array | 
+				(array beginsWith: '{') 
+					ifTrue: [ array ]
+					ifFalse: [ Number readFrom: (ReadStream on: array) ] ] ].
 
 	^ converters
 
