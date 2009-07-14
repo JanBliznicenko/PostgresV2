@@ -66,7 +66,11 @@ PGConnection class >> buildDefaultFieldConverters [
 
 	#(700 "float4" 701 "float8" 1021 "_float4" 1022 "_float8" 1700 "numeric")
 		do: [:each | converters at: each put: [:s | (Number readFrom: (ReadStream on: s)) asFloat]].
-
+		
+	#(790 "money" 791 "_money")
+	do: [ :each | converters at: each put: [:s |
+			Money readFrom: (ReadStream on: s) ]].
+		
 	dateBlock :=
 		[:s | Date
 				newDay: (s copyFrom: 9 to: 10) asInteger
