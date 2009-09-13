@@ -23,7 +23,8 @@ Class {
 		'connectionArgs',
 		'notificationSubscribers',
 		'fieldConverters',
-		'sqlStringConverter'
+		'sqlStringConverter',
+		'receivingTextConverter'
 	],
 	#classVars : [
 		'DefaultTraceLevel',
@@ -31,6 +32,26 @@ Class {
 	],
 	#category : #PostgresV2
 }
+
+{ #category : #converters }
+PGConnection class >> booleanArrayConverter [
+
+	^[ :s | 
+		| readStream |
+		readStream := s readStream.
+		readStream next.
+		Array streamContents: [ :stream | 
+			[ readStream atEnd or: [ readStream peek = $} ] ] whileFalse: [
+				stream nextPut: (self nextBooleanFrom: readStream) ] ] ].
+
+
+]
+
+{ #category : #converters }
+PGConnection class >> booleanConverter [
+
+	^[ :s | s = 't' or: [ s = 'T' ] ]
+]
 
 { #category : #initialization }
 PGConnection class >> buildDefaultConnectionArgs [
@@ -51,81 +72,25 @@ PGConnection class >> buildDefaultFieldConverters [
 	Also, see the source code file:
 		.../src/include/catalog/pg_type.h
 	"
-	| converters dateBlock timestampBlock timetzBlock timestamptzBlock |
-
+	| converters |
 	converters := IdentityDictionary new.
-
-	#(16 "bool" 1000 "_bool")
-		do: [:each | converters at: each put: [:s | s = 't' or: [s = 'T']]].
-
-	#(18 "char" 1002 "_char" 1042 "bpchar")
-		do: [:each | converters at: each put: [:s | s]].
-
-	#(20 "int8" 21 "int2" 23 "int4" 1005 "_int2" "1007" "_int4" 1016 "_int8")
-		do: [:each | converters at: each put: [:s | Number readFrom: (ReadStream on: s)]].
-
-	#(700 "float4" 701 "float8" 1021 "_float4" 1022 "_float8" 1700 "numeric")
-		do: [:each | converters at: each put: [:s | (Number readFrom: (ReadStream on: s)) asFloat]].
-		
-	#(790 "money" 791 "_money")
-	do: [ :each | converters at: each put: [:s |
-			Money readFrom: (ReadStream on: s) ]].
-		
-	dateBlock :=
-		[:s | Date
-				newDay: (s copyFrom: 9 to: 10) asInteger
-				month: (s copyFrom: 6 to: 7) asInteger
-				year: (s copyFrom: 1 to: 4) asInteger].
-	#(1082 "date" 1182 "_date")
-		do: [:each | converters at: each put: dateBlock].
-
-	#(1083 "time" 1183 "_time")
-		do: [:each | converters at: each put: [:s | Time readFrom: (ReadStream on: s)]].
-
-	timestampBlock :=
-		[:s |	DateAndTime
-				year: (s copyFrom: 1 to: 4) asInteger
-				month: (s copyFrom: 6 to: 7) asInteger
-				day: (s copyFrom: 9 to: 10) asInteger
-				hour: (s copyFrom: 12 to: 13) asInteger
-				minute: (s copyFrom: 15 to: 16) asInteger
-				second: (s copyFrom: 18 to: 19) asInteger].
-	#(1114 "timestamp" 1115 "_timestamp")
-		do: [:each | converters at: each put: timestampBlock].
-
-	timetzBlock :=
-		[:s | | list |
-			list := (s subStrings: ':') collect:[:i | i asInteger].
-			Time fromSeconds: ((list at: 1) * 3600) + ((list at: 2) * 60) + (list at: 3)].
-	#(1266 "timetz" 1270 "_timetz")
-		do: [:each | converters at: each put: timetzBlock].
-
-	timestamptzBlock :=
-		[:s | | direction offset |
-			direction := (s charAt: 23) = $- ifTrue: [-1] ifFalse: [1].
-			offset := Duration
-				days: 0
-				hours: (s copyFrom: 21 to: 22) asInteger * direction
-				minutes: (s copyFrom: 24 to: 25) asInteger * direction
-				seconds: 0.
-			DateAndTime
-				year: (s copyFrom: 1 to: 4) asInteger
-				month: (s copyFrom: 6 to: 7) asInteger
-				day: (s copyFrom: 9 to: 10) asInteger
-				hour: (s copyFrom: 12 to: 13) asInteger
-				minute: (s copyFrom: 15 to: 16) asInteger
-				second: (s copyFrom: 18 to: 19) asInteger
-				offset: offset].
-	#(1184 "timestamptz " 1185 "_timestamptz")
-		do: [:each | converters at: each put: timestamptzBlock].
-		
-	#(1007)
-		do: [ :each | converters at: each put: 
-			[ :array | 
-				(array beginsWith: '{') 
-					ifTrue: [ array ]
-					ifFalse: [ Number readFrom: (ReadStream on: array) ] ] ].
-
+	#(
+		(booleanConverter (16 "boolean"))
+		(booleanArrayConverter (1000 "boolean[]"))
+		(characterConverter (18 "char" 1002 "_char" 1042 "bpchar")) "fix the array converter!"
+		(integerConveter (20 "int8" 21 "int2" 23 "int4"))
+		(integerArrayConveter (1005 "_int2[]" 1007 "_int4[]" 1016 "_int8[]"))
+		(stringArrayConveter (1009)) "doesn't handle nulls"
+		(floatConverter (700 "float4" 701 "float8" 1021 "_float4" 1022 "_float8")) "fix the array converter"
+		(numericConverter (1700 "numeric")) "fix it, it returns a float now"
+		(dateConverter (1082 "date" 1182 "_date")) "fix the array converter"
+		(timeConverter (1083 "time" 1183 "_time")) "fix the array converter"
+		(timestampConverter (1114 "timestamp" 1115 "_timestamp")) "fix the array converter"
+		(timeWithTimezoneConverter (1266 "timetz" 1270 "_timetz")) "probably omits the timezone. fix the array converter"
+		(timestampWithTimezoneConverter (1184 "timestamptz " 1185 "_timestamptz")) "fix the array converter"
+	) do: [ :each |
+		each second do: [ :typeOid |
+			converters at: typeOid put: (self perform: each first) ] ].
 	^ converters
 
 ]
@@ -232,16 +197,33 @@ PGConnection class >> buildStateTransitionTable [
 	(TerminalError (
 		))
 	)
-	inject: Dictionary new
+	inject: IdentityDictionary new
 	into: [:table :each |
 		table
 			at: (each at: 1)
 			put: ((each at: 2)
-					inject: Dictionary new
+					inject: IdentityDictionary new
 					into: [:stateTransitions :transition |
 						stateTransitions at: (transition at: 1) put: (transition at: 2).
 						stateTransitions]).
 		table].
+
+]
+
+{ #category : #converters }
+PGConnection class >> characterConverter [
+
+	^[ :s | s ]
+]
+
+{ #category : #converters }
+PGConnection class >> dateConverter [ 
+
+	^[:s |
+		Date
+			year: (s copyFrom: 1 to: 4) asInteger
+			month: (s copyFrom: 6 to: 7) asInteger
+			day: (s copyFrom: 9 to: 10) asInteger ]
 
 ]
 
@@ -279,10 +261,194 @@ PGConnection class >> defaultTraceLevel: anInteger [
 	DefaultTraceLevel := anInteger
 ]
 
+{ #category : #converters }
+PGConnection class >> floatConverter [
+
+	^[ :s | (Number readFrom: (ReadStream on: s)) asFloat ]
+]
+
+{ #category : #converters }
+PGConnection class >> integerArrayConveter [
+
+	^[:s | 
+		| readStream |
+		readStream := s readStream.
+		readStream next.
+		Array streamContents: [ :stream | 
+			[ readStream atEnd or: [ readStream peek = $} ] ] whileFalse: [ 
+				stream nextPut: (self readIntegerFrom: readStream).
+				readStream next ] ] ]
+
+]
+
+{ #category : #converters }
+PGConnection class >> integerConveter [
+
+	^[ :s | self readIntegerFrom: (ReadStream on: s) ].
+
+]
+
 { #category : #'instance creation' }
 PGConnection class >> new [
 
 	^self basicNew initialize
+
+]
+
+{ #category : #initialization }
+PGConnection class >> nextBooleanFrom: readStream [
+
+	| firstChar result |
+	firstChar := readStream next.
+	result := firstChar caseOf: { 
+		[ $t ] -> [ true ].
+		[ $T ] -> [ true ].
+		[ $f ] -> [ false ].
+		[ $F ] -> [ false ].
+		[ $N ] -> [ 
+			(readStream next: 3) = 'ULL' ifFalse: [
+				self parseError ].
+			nil ] }.
+	readStream skip: 1.
+	^result
+]
+
+{ #category : #initialization }
+PGConnection class >> nextStringFrom: readStream [
+
+	| escape |
+	^String streamContents: [ :stream |
+		readStream peek = $" 
+			ifFalse: [ 
+				[ #($, $}) includes: readStream peek ] whileFalse: [ 
+					stream nextPut: readStream next ] ]
+			ifTrue: [
+				escape := false.
+				readStream skip: 1.
+				[ escape not and: [ readStream peek = $" ] ] whileFalse: [ 
+					| character |
+					character := readStream next.
+					escape 
+						ifTrue: [
+							stream nextPut: character.
+							escape := false ]
+						ifFalse: [
+							escape := character = $\.
+							escape ifFalse: [ stream nextPut: character ] ].
+					].
+				readStream skip: 1 ].
+		readStream skip: 1 " drop comma or curlybrace " ]
+]
+
+{ #category : #converters }
+PGConnection class >> numericConverter [
+	"This should convert the value to ScaledDecimal"
+
+	^[ :s | (Number readFrom: (ReadStream on: s)) asFloat ]
+]
+
+{ #category : #initialization }
+PGConnection class >> readIntegerFrom: readStream [
+
+	| next result sign |
+	readStream atEnd ifTrue: [ ^self parseError ].
+	readStream peek caseOf: {
+		[ $- ] -> [
+			sign := -1.
+			readStream skip: 1 ].
+		[ $N ] -> [
+			(readStream next: 4) = 'NULL' ifTrue: [ ^nil].
+			self parseError ]}
+		otherwise: [ sign := 1 ].
+	result := 0.
+	[ (next := readStream next) == nil or: [
+		(next := next asciiValue - 48) < 0 or: [
+			next > 9 ] ] ] whileFalse: [
+		result := result * 10 + next ].
+	readStream skip: -1.
+	^result * sign
+
+]
+
+{ #category : #converters }
+PGConnection class >> stringArrayConveter [
+
+	^[ :s |
+		| readStream |
+		readStream := s readStream.
+		readStream next.
+		Array streamContents: [ :stream | 
+			[ readStream atEnd or: [ readStream peek = $} ] ] whileFalse: [
+				stream nextPut: (self nextStringFrom: readStream) ] ] ]
+]
+
+{ #category : #tests }
+PGConnection class >> testConvertersWith: aPGConnection [
+
+	{ 
+		'select b::boolean from (values (true), (false), (null)) t(b)' -> #(true false nil).
+		'select array[true, false, null]::boolean[]' -> #((true false nil)).
+		'select i::integer from (values (-1), (1), (null), (1234567890)) t(i)' -> #(-1 1 nil 1234567890).
+		'select array[1, 2, null, -1]::integer[]' -> #((1 2 nil -1)).
+		"'select array[''foo'', ''bar'', null, ''baz'']::text[]' -> #(('foo' 'bar' nil 'baz'))"
+		'select d::date from (values (''1234-12-30''), (null), (''2009-01-31'')) t(d)' -> { Date year: 1234 month: 12 day: 30. nil. Date year: 2009 month: 1 day: 31 }.
+		
+	} do: [ :each |
+		| dataRows |
+		dataRows := (aPGConnection executeAndCheckResult: each key) dataRows.
+		self assert: (dataRows collect: [ :row | row at: 1 ]) asArray = each value ]
+	
+]
+
+{ #category : #converters }
+PGConnection class >> timeConverter [ 
+
+	^[ :s | Time readFrom: (ReadStream on: s) ]
+]
+
+{ #category : #converters }
+PGConnection class >> timeWithTimezoneConverter [
+ 
+	^[:s |
+		| list |
+		list := (s subStrings: ':') collect:[:i | i asInteger].
+		Time fromSeconds: ((list at: 1) * 3600) + ((list at: 2) * 60) + (list at: 3) ]
+
+
+]
+
+{ #category : #converters }
+PGConnection class >> timestampConverter [ 
+
+	^[:s |
+		DateAndTime
+			year: (s copyFrom: 1 to: 4) asInteger
+			month: (s copyFrom: 6 to: 7) asInteger
+			day: (s copyFrom: 9 to: 10) asInteger
+			hour: (s copyFrom: 12 to: 13) asInteger
+			minute: (s copyFrom: 15 to: 16) asInteger
+			second: (s copyFrom: 18 to: 19) asInteger ]
+]
+
+{ #category : #converters }
+PGConnection class >> timestampWithTimezoneConverter [
+
+	^[ :s |
+		| direction offset |
+		direction := (s at: 23) = $- ifTrue: [ -1 ] ifFalse: [ 1 ].
+		offset := Duration
+			days: 0
+			hours: (s copyFrom: 21 to: 22) asInteger * direction
+			minutes: (s copyFrom: 24 to: 25) asInteger * direction
+			seconds: 0.
+		DateAndTime
+			year: (s copyFrom: 1 to: 4) asInteger
+			month: (s copyFrom: 6 to: 7) asInteger
+			day: (s copyFrom: 9 to: 10) asInteger
+			hour: (s copyFrom: 12 to: 13) asInteger
+			minute: (s copyFrom: 15 to: 16) asInteger
+			second: (s copyFrom: 18 to: 19) asInteger
+			offset: offset ]
 
 ]
 
@@ -303,17 +469,13 @@ PGConnection >> cancelRequest [
 
 { #category : #'as yet unclassified' }
 PGConnection >> clientEncoding: aSymbol [
-	sqlStringConverter := [
-		:sqlString| 
-		sqlString convertToEncoding: aSymbol
-	].
-	#(25 1043) do: [
-		:each| 
-		self fieldConverters  at: each put: [
-			:s | 
-			s convertFromEncoding: aSymbol
-		]
-	].	
+
+	sqlStringConverter := [ :sqlString | 
+		sqlString convertToEncoding: aSymbol ].
+	receivingTextConverter := TextConverter newForEncoding: aSymbol.
+	#(25 1043) do: [ 	:each | 
+		self fieldConverters  at: each put: [ :s | 
+			s convertFromWithConverter: receivingTextConverter ] ].	
 
 ]
 
@@ -431,7 +593,7 @@ PGConnection >> execute: sqlString [
 
 	self isConnected ifFalse: [ self error: 'Connection not valid' ].
 
-	sql := sqlStringConverter value: sqlString.
+	sql := sqlString convertToWithConverter: receivingTextConverter. "sqlStringConverter value: sqlString."
 	self queueEvent: #Query.
 	self saProcessEventsUntil: #(ReadyForQuery ConnectionFailed).
 
@@ -440,6 +602,40 @@ PGConnection >> execute: sqlString [
 		ifTrue: [ result resultSets removeLast ].
 
 	^ result
+
+]
+
+{ #category : #api }
+PGConnection >> execute: sqlString withRowBlock: aRowBlock [
+	"Iterate thru resultset with block (for each row) without loading all bulk resultset data into memory (internal arrays). Implemented by database CURSORs.
+	Row block has 2 parameters: 
+		1) row description (PGRowDescription - column names, data types etc.)
+		2) row data (OrderedCollection)"
+	| cursorName rslt rowDesc rows |
+	cursorName := 'squeakTempCursor', Time now nanoSecond asString.
+	self executeAndCheckResult: 'BEGIN WORK'.
+	[ 	self executeAndCheckResult: 'DECLARE ', cursorName, ' CURSOR FOR ', sqlString asString.
+		[ 
+			[	rslt := self executeAndCheckResult: 'FETCH FORWARD 5000 FROM ', cursorName.
+				rowDesc := rslt resultSets first rowDescription.
+				rows := rslt resultSets first rows.
+				rows size > 0.
+			] whileTrue: [
+				rows do: [ :row | aRowBlock value: rowDesc value: row data ].				
+				].						
+		] ensure: [ self executeAndCheckResult: 'CLOSE ', cursorName ]
+	] ensure: [ self executeAndCheckResult: 'COMMIT WORK' ].
+	
+
+]
+
+{ #category : #api }
+PGConnection >> executeAndCheckResult: sqlString [
+	"Same as execute: but check responce - throw exception if error in responce" 
+	| res |
+	res := self execute: sqlString.
+	(res errorResponse isKindOf: PGErrorResponse) ifTrue: [ Error signal: res errorResponse value ].
+	^ res.
 
 ]
 
@@ -509,7 +705,7 @@ PGConnection >> next [
 			[trace >= 10 
 				ifTrue: [self log: 'next' text: '**** filling read buffer ****'].
 			"(Delay forMilliseconds: 500) wait."
-			socket waitForDataFor: Socket standardTimeout.
+			socket waitForData. "For: Socket standardTimeout."
 			
 			[(lastReadIndex := socket receiveDataInto: readBuffer) = 0 
 				ifTrue: 

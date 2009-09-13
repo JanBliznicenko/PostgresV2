@@ -15,7 +15,7 @@ Class {
 { #category : #stt }
 PGActiveObject class >> buildStateTransitionTable [
 
-	^ Dictionary new
+	^IdentityDictionary new
 
 ]
 

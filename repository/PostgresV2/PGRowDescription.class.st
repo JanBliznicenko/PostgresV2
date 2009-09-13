@@ -4,7 +4,8 @@ Class {
 	#instVars : [
 		'resultSet',
 		'numberOfColumns',
-		'columnDescriptions'
+		'columnDescriptions',
+		'columnDescriptionDictionary'
 	],
 	#category : #PostgresV2
 }
@@ -14,6 +15,16 @@ PGRowDescription class >> new [
 
 	^self basicNew initialize.
 
+]
+
+{ #category : #'as yet unclassified' }
+PGRowDescription >> columnDescriptionDictionary [
+
+	^columnDescriptionDictionary ifNil: [
+		columnDescriptionDictionary := IdentityDictionary new.
+		columnDescriptions doWithIndex: [ :each :i |
+			columnDescriptionDictionary at: each fieldName asSymbol put: i ].
+		columnDescriptionDictionary ]
 ]
 
 { #category : #accessing }

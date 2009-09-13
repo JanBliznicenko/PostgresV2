@@ -54,6 +54,13 @@ PGResult >> connection: value [
 	connection := value
 ]
 
+{ #category : #'accessing-convenience' }
+PGResult >> dataRows [
+
+	^ self lastResultSet ifNotNilDo: [ :rs |
+		rs dataRows ]
+]
+
 { #category : #printing }
 PGResult >> displayResultOn: aStream [
 
@@ -95,7 +102,9 @@ PGResult >> initialize [
 { #category : #'accessing-convenience' }
 PGResult >> lastResultSet [
 
-	^ resultSets last
+	^resultSets
+		ifEmpty: [ nil ]
+		ifNotEmpty: [ resultSets last ]
 ]
 
 { #category : #initialize }

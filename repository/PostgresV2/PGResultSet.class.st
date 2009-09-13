@@ -38,6 +38,12 @@ PGResultSet >> completedResponse: anObject [
 	completedResponse := anObject
 ]
 
+{ #category : #accessing }
+PGResultSet >> dataRows [
+
+	^rows collect: [ :e | e dataRow ]
+]
+
 { #category : #printing }
 PGResultSet >> displayResultSetOn: aStream [
 
