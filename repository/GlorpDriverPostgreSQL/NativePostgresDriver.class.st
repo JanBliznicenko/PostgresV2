@@ -61,6 +61,11 @@ NativePostgresDriver >> connectionClass [
 ]
 
 { #category : #'as yet unclassified' }
+NativePostgresDriver >> isConnected [
+	^ connection isConnected
+]
+
+{ #category : #'as yet unclassified' }
 NativePostgresDriver >> logout [
 connection terminate.
 ]
