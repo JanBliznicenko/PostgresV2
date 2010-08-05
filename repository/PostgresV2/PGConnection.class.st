@@ -27,8 +27,8 @@ Class {
 		'receivingTextConverter'
 	],
 	#classVars : [
-		'DefaultTraceLevel',
-		'DefaultConnectionArgs'
+		'DefaultConnectionArgs',
+		'DefaultTraceLevel'
 	],
 	#category : #PostgresV2
 }
