@@ -50,6 +50,6 @@ DateAndTime class >> year: year month: month day: day [
 		julianDayNumber: julianDayNumber;
 		seconds: 0;
 		nanos: 0;
-		offset: (Duration seconds: 0);
+		offset: self localOffset;
 		yourself
 ]
