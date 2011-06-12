@@ -20,7 +20,7 @@ NativePostgresqlDriverMainBackendTest class >> glorpBackendFacility [
 { #category : #'as yet unclassified' }
 NativePostgresqlDriverMainBackendTest >> testSetToBaseTestAFacility [
 	super testSetToBaseTestAFacility.
-	SqueakDatabaseAccessor DefaultDriver: NativePostgresDriver.
+	PharoDatabaseAccessor DefaultDriver: NativePostgresDriver.
 	GlorpDatabaseLoginResource current: nil.
 	GlorpDatabaseLoginResource defaultLogin: self class glorpBackendFacility login
 ]
