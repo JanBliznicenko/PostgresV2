@@ -295,7 +295,7 @@ PGConnection class >> new [
 
 ]
 
-{ #category : #initialization }
+{ #category : #private }
 PGConnection class >> nextBooleanFrom: readStream [
 
 	| firstChar result |
@@ -313,7 +313,34 @@ PGConnection class >> nextBooleanFrom: readStream [
 	^result
 ]
 
-{ #category : #initialization }
+{ #category : #private }
+PGConnection class >> nextDateAndTimeFrom: string [
+	"self nextDateAndTimeFrom: '1967-08-07 18:50:12+02'."
+	"self nextDateAndTimeFrom: '1967-08-07 18:50:12'."
+	
+	| stream parser parseInteger direction offset |
+	stream := ReadStream on: string.
+	parser := SqNumberParser on: stream.
+	parseInteger := [ :from :to | 
+		stream setFrom: from to: to. 
+		parser nextUnsignedIntegerBase: 10 ].
+	offset := string size > 19 
+		ifTrue: [		
+			direction := (string at: 20) = $- ifTrue: [ -1 ] ifFalse: [ 1 ].
+			Duration hours: (parseInteger value: 21 value: 22) * direction ]
+		ifFalse: [ 
+			DateAndTime localOffset ].
+	^ DateAndTime
+		year: (parseInteger value: 1 value: 4)
+		month: (parseInteger value: 6 value: 7)
+		day: (parseInteger value: 9 value: 10)
+		hour: (parseInteger value: 12 value: 13)
+		minute: (parseInteger value: 15 value: 16)
+		second: (parseInteger value: 18 value: 19)
+		offset: offset
+]
+
+{ #category : #private }
 PGConnection class >> nextStringFrom: readStream [
 
 	| escape |
@@ -347,7 +374,7 @@ PGConnection class >> numericConverter [
 	^[ :s | (Number readFrom: (ReadStream on: s)) asFloat ]
 ]
 
-{ #category : #initialization }
+{ #category : #private }
 PGConnection class >> readIntegerFrom: readStream [
 
 	| next result sign |
@@ -420,36 +447,13 @@ PGConnection class >> timeWithTimezoneConverter [
 { #category : #converters }
 PGConnection class >> timestampConverter [ 
 
-	^[:s |
-		DateAndTime
-			year: (s copyFrom: 1 to: 4) asInteger
-			month: (s copyFrom: 6 to: 7) asInteger
-			day: (s copyFrom: 9 to: 10) asInteger
-			hour: (s copyFrom: 12 to: 13) asInteger
-			minute: (s copyFrom: 15 to: 16) asInteger
-			second: (s copyFrom: 18 to: 19) asInteger ]
+	^[:s | self nextDateAndTimeFrom: s]
 ]
 
 { #category : #converters }
 PGConnection class >> timestampWithTimezoneConverter [
 
-	^[ :s |
-		| direction offset |
-		direction := (s at: 23) = $- ifTrue: [ -1 ] ifFalse: [ 1 ].
-		offset := Duration
-			days: 0
-			hours: (s copyFrom: 21 to: 22) asInteger * direction
-			minutes: (s copyFrom: 24 to: 25) asInteger * direction
-			seconds: 0.
-		DateAndTime
-			year: (s copyFrom: 1 to: 4) asInteger
-			month: (s copyFrom: 6 to: 7) asInteger
-			day: (s copyFrom: 9 to: 10) asInteger
-			hour: (s copyFrom: 12 to: 13) asInteger
-			minute: (s copyFrom: 15 to: 16) asInteger
-			second: (s copyFrom: 18 to: 19) asInteger
-			offset: offset ]
-
+	^[ :s | self nextDateAndTimeFrom: s]
 ]
 
 { #category : #accessing }
