@@ -11,7 +11,7 @@ NativePostgresDriver >> basicExecuteSQLString: aString [
 	result := connection execute: aString.
 	result errorResponse notNil
 		ifTrue:
-			[self externalDatabaseErrorSignal signal: result errorResponse value].
+			[ Dialect error signal: result errorResponse value].
 	rowCollection := OrderedCollection new.
 	result rows do: [:ea | rowCollection add: ea data asArray].
  	^ReadStream on: rowCollection asArray
