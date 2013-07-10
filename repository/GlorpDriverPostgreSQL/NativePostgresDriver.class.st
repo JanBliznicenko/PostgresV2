@@ -41,17 +41,20 @@ NativePostgresDriver >> connect: aLogin [
 NativePostgresDriver >> connectionArgsFromCurrentLogin: aLogin [
 
 	"connect string looks like  hostname:portNumber_db-name. :portNumber is optional"
-	| str portIndex index dbIndex |
+	| str portIndex index dbIndex connectionArgs |
 	str := aLogin connectString.
 	portIndex := index := str indexOf: $:.
 	dbIndex := str indexOf: $_.
 	index = 0 ifTrue: [index := dbIndex].
-	^(Dialect smalltalkAt: #PGConnectionArgs)
+	connectionArgs := (Dialect smalltalkAt: #PGConnectionArgs)
 		hostname: (str copyFrom: 1 to: index - 1)
 		portno: (portIndex = 0 ifTrue: [5432] ifFalse: [(str copyFrom: portIndex + 1 to: dbIndex - 1) asNumber])
 		databaseName: (str copyFrom: dbIndex + 1 to: str size)
 		userName: aLogin username
-		password: aLogin password
+		password: aLogin password.
+	connectionArgs clientEncoding: aLogin encodingStrategy asSymbol.
+	^ connectionArgs
+	
 ]
 
 { #category : #'as yet unclassified' }
@@ -67,7 +70,7 @@ NativePostgresDriver >> isConnected [
 
 { #category : #'as yet unclassified' }
 NativePostgresDriver >> logout [
-connection terminate.
+	connection terminate.
 ]
 
 { #category : #'as yet unclassified' }
