@@ -81,9 +81,9 @@ PGConnection class >> buildDefaultConnectionArgs [
 	^ PGConnectionArgs
 		hostname: 'localhost'
 		portno: 5432
-		databaseName: 'test'
-		userName: 'postgres'
-		password: 'secret'
+		databaseName: 'sodbxtest'
+		userName: 'sodbxtest'
+		password: 'sodbxtest'
 
 ]
 
