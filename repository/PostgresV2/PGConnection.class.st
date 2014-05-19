@@ -344,7 +344,7 @@ PGConnection class >> nextDateAndTimeFrom: string [
 	
 	| stream parser parseInteger direction fractionalSeconds offset |
 	stream := ReadStream on: string.
-	parser := SqNumberParser on: stream.
+	parser := NumberParser on: stream.
 	parseInteger := [ :from :to | 
 		stream setFrom: from to: to. 
 		parser nextUnsignedIntegerBase: 10 ].
