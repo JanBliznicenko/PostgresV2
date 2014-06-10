@@ -189,3 +189,21 @@ ConfigurationOfPostgresV2 >> version21: spec [
 		spec package: 'Cryptography' with: 'Cryptography-mtf.36'.	
 	]
 ]
+
+{ #category : #versions }
+ConfigurationOfPostgresV2 >> version22: spec [
+	<version: '2.2' imports: #('2.0-baseline')>
+	
+	spec for: #common do: [
+		spec blessing: #release.
+		spec package: 'PostgresV2' with: 'PostgresV2-SvenVanCaekenberghe.28'.
+	].
+
+	spec for: #'pharo3.x' do: [ 
+		spec package: 'PostgresV2' with: 'PostgresV2-EstebanMaringolo.32'.	
+	 ].
+
+	spec for:  #squeak do: [
+		spec package: 'Cryptography' with: 'Cryptography-mtf.36'.	
+	]
+]
