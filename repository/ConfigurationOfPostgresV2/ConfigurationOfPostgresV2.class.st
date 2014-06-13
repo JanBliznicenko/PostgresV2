@@ -148,6 +148,13 @@ ConfigurationOfPostgresV2 >> project [
 		project ]
 ]
 
+{ #category : #'as yet unclassified' }
+ConfigurationOfPostgresV2 >> stable: spec [ 
+	<symbolicVersion: #stable>
+	
+	spec for: #'pharo3.0.x' version: '2.2'.
+]
+
 { #category : #versions }
 ConfigurationOfPostgresV2 >> version10: spec [
 	<version: '1.0' imports: #('1.0-baseline')>
@@ -196,12 +203,22 @@ ConfigurationOfPostgresV2 >> version22: spec [
 	
 	spec for: #common do: [
 		spec blessing: #release.
-		spec package: 'PostgresV2' with: 'PostgresV2-SvenVanCaekenberghe.28'.
+		spec package: 'PostgresV2' with: 'PostgresV2-GuillermoPolito.31'.
 	].
 
-	spec for: #'pharo3.x' do: [ 
-		spec package: 'PostgresV2' with: 'PostgresV2-EstebanMaringolo.32'.	
-	 ].
+	spec for:  #squeak do: [
+		spec package: 'Cryptography' with: 'Cryptography-mtf.36'.	
+	]
+]
+
+{ #category : #versions }
+ConfigurationOfPostgresV2 >> version23: spec [
+	<version: '2.3' imports: #('2.0-baseline')>
+	
+	spec for: #common do: [
+		spec blessing: #release.
+		spec package: 'PostgresV2' with: 'PostgresV2-EstebanMaringolo.32'.
+	].
 
 	spec for:  #squeak do: [
 		spec package: 'Cryptography' with: 'Cryptography-mtf.36'.	
