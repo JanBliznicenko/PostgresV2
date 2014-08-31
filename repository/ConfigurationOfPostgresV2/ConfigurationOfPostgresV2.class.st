@@ -1,3 +1,8 @@
+"
+I am ConfigurationOfPostgresV2, the Metacello configuration of the PostgreSQL database driver.
+
+PostgresV2 implements version 2 of the PG wire protocol over TCP.
+"
 Class {
 	#name : #ConfigurationOfPostgresV2,
 	#superclass : #Object,
@@ -148,11 +153,11 @@ ConfigurationOfPostgresV2 >> project [
 		project ]
 ]
 
-{ #category : #'as yet unclassified' }
+{ #category : #'symbolic versions' }
 ConfigurationOfPostgresV2 >> stable: spec [ 
 	<symbolicVersion: #stable>
 	
-	spec for: #'pharo3.0.x' version: '2.2'.
+	spec for: #'pharo3.0.x' version: '2.3'.
 ]
 
 { #category : #versions }
