@@ -140,6 +140,42 @@ ConfigurationOfPostgresV2 >> baseline20: spec [
 		]
 ]
 
+{ #category : #baselines }
+ConfigurationOfPostgresV2 >> baseline24: spec [ 
+	<version: '2.4-baseline'>
+ 
+	spec for: #pharo do: [ 
+		spec project: 'JSON' with: [ 
+			spec 
+				className: #ConfigurationOfJSON;
+				repository: 'http://smalltalkhub.com/mc/PharoExtras/JSON/main';
+				versionString: #stable.
+		 ].
+	
+		spec package: #PostgresV2 with: [ spec requires: #('JSON') ].
+	].
+       
+	spec for: #squeakCommon do: [
+		spec 
+			blessing: #baseline;
+               	description: '2.0 baseline for PostgresV2 in the new SmalltalkHub repository';
+			repository: 'http://smalltalkhub.com/mc/PharoExtras/PostgresV2/main'.
+		spec package: 'PostgresV2'.
+		].
+	
+	spec for: #squeak do: [
+		spec package: 'Cryptography' with: 
+				[ spec repository: 'http://www.squeaksource.com/Cryptography' ]
+		]
+]
+
+{ #category : #'symbolic versions' }
+ConfigurationOfPostgresV2 >> development: spec [ 
+	<symbolicVersion: #development>
+	
+	spec for: #'pharo3.0.x' version: '2.4'.
+]
+
 { #category : #accessing }
 ConfigurationOfPostgresV2 >> project [
 
@@ -223,6 +259,22 @@ ConfigurationOfPostgresV2 >> version23: spec [
 	spec for: #common do: [
 		spec blessing: #release.
 		spec package: 'PostgresV2' with: 'PostgresV2-EstebanMaringolo.32'.
+	].
+
+	spec for:  #squeak do: [
+		spec package: 'Cryptography' with: 'Cryptography-mtf.36'.	
+	]
+]
+
+{ #category : #versions }
+ConfigurationOfPostgresV2 >> version24: spec [
+	<version: '2.4' imports: #('2.4-baseline')>
+	
+	spec for: #common do: [
+		spec description: 'Adds support to JSON native datatype available from PostgreSQL 9.2'.
+		spec author: 'EstebanMaringolo'.
+		spec blessing: #development.
+		spec package: 'PostgresV2' with: 'PostgresV2-EstebanMaringolo.33'.
 	].
 
 	spec for:  #squeak do: [
