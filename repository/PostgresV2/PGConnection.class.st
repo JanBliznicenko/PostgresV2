@@ -110,6 +110,7 @@ PGConnection class >> buildDefaultFieldConverters [
 		(timestampConverter (1114 "timestamp" 1115 "_timestamp")) "fix the array converter"
 		(timeWithTimezoneConverter (1266 "timetz" 1270 "_timetz")) "probably omits the timezone. fix the array converter"
 		(timestampWithTimezoneConverter (1184 "timestamptz " 1185 "_timestamptz")) "fix the array converter"
+		(jsonConverter (114 114))
 	) do: [ :each |
 		each second do: [ :typeOid |
 			converters at: typeOid put: (self perform: each first) ] ].
@@ -307,6 +308,14 @@ PGConnection class >> integerArrayConveter [
 PGConnection class >> integerConveter [
 
 	^[ :s | self readIntegerFrom: (ReadStream on: s) ].
+
+]
+
+{ #category : #converters }
+PGConnection class >> jsonConverter [
+ 
+	^[:string | Json readFrom: string readStream ]
+
 
 ]
 
