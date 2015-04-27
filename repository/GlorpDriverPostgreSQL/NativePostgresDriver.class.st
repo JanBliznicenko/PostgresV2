@@ -52,7 +52,7 @@ NativePostgresDriver >> connectionArgsFromCurrentLogin: aLogin [
 		databaseName: (str copyFrom: dbIndex + 1 to: str size)
 		userName: aLogin username
 		password: aLogin password.
-	connectionArgs clientEncoding: aLogin encodingStrategy asSymbol.
+	aLogin encodingStrategy ifNotNil: [:encoding | connectionArgs clientEncoding: encoding asSymbol ].
 	^ connectionArgs
 	
 ]
