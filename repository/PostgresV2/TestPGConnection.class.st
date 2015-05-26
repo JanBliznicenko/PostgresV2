@@ -373,7 +373,7 @@ TestPGConnection >> runRegressionTests [
 { #category : #tests }
 TestPGConnection >> sampleJsonObject [
 	| jsonObject |
-	jsonObject := JsonObject new
+	jsonObject := Dictionary new
 		at: 'string' put: 'Hello world';
 		at: 'number' put: 10;
 		at: 'float' put: 10.2;
@@ -726,18 +726,38 @@ TestPGConnection >> testJsonFieldConverter [
 	self createJsonFieldConverterTable.
 	jsonObject := self sampleJsonObject.
 
-	result := conn execute: 'INSERT INTO jsonfieldconvertertable VALUES (' , (Json render: jsonObject) printString , ')'.
+	result := conn execute: 'INSERT INTO jsonfieldconvertertable VALUES (' , (NeoJSONWriter toString: jsonObject) printString , ')'.
 	result := conn execute: 'SELECT * from jsonfieldconvertertable'.
 	conn terminate.
 	self assert: result rows size = 1.
 	data := result rows first data.	"result rows first inspect."
-	self assert: (data at: 1) class = JsonObject.
+	self assert: (data at: 1) class = Dictionary.
 	self assert: (data at: 1) = jsonObject.
+]
 
+{ #category : #tests }
+TestPGConnection >> testJsonFieldCustomConverter [
+	| conn result data jsonObject jsonString |
 	
+	conn := self newConnection.
+	conn startup.
+	(self supportsJsonType: conn) ifFalse: [ 
+		conn terminate.
+		self skip].
+	
+	"Uses a no-op coverter just to test whether it overrides the default converter"
+	conn jsonConverter: [:string | string ].
 
-	
-	
+	self dropJsonFieldConverterTable.
+	self createJsonFieldConverterTable.
+	jsonObject := self sampleJsonObject.
+	jsonString := NeoJSONWriter toString: jsonObject.
+	result := conn execute: 'INSERT INTO jsonfieldconvertertable VALUES (' , jsonString printString , ')'.
+	result := conn execute: 'SELECT * from jsonfieldconvertertable'.
+	conn terminate.
+	self assert: result rows size = 1.
+	data := result rows first data.	"result rows first inspect."
+	self assert: (data at: 1) = jsonString.
 ]
 
 { #category : #tests }

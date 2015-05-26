@@ -110,7 +110,7 @@ PGConnection class >> buildDefaultFieldConverters [
 		(timestampConverter (1114 "timestamp" 1115 "_timestamp")) "fix the array converter"
 		(timeWithTimezoneConverter (1266 "timetz" 1270 "_timetz")) "probably omits the timezone. fix the array converter"
 		(timestampWithTimezoneConverter (1184 "timestamptz " 1185 "_timestamptz")) "fix the array converter"
-		(jsonConverter (114 114))
+		(jsonConverter (114))
 	) do: [ :each |
 		each second do: [ :typeOid |
 			converters at: typeOid put: (self perform: each first) ] ].
@@ -314,7 +314,7 @@ PGConnection class >> integerConveter [
 { #category : #converters }
 PGConnection class >> jsonConverter [
  
-	^[:string | Json readFrom: string readStream ]
+	^[:string | NeoJSONReader fromString: string ]
 
 
 ]
@@ -744,6 +744,16 @@ PGConnection >> initialize [
 { #category : #accessing }
 PGConnection >> isConnected [
 	^ socket notNil and: [ socket isConnected]
+]
+
+{ #category : #accessing }
+PGConnection >> jsonConverter [
+	^self fieldConverterAt: 114
+]
+
+{ #category : #accessing }
+PGConnection >> jsonConverter: monadicValuable [
+	^self fieldConverterAt: 114 put: monadicValuable
 ]
 
 { #category : #'private-actions' }
