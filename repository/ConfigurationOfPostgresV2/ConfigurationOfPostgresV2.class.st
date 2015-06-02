@@ -177,7 +177,7 @@ ConfigurationOfPostgresV2 >> baseline25: spec [
 		spec project: 'NeoJSON' with: [ 
 			spec 
 				className: #ConfigurationOfNeoJSON;
-				repository: 'http://http://mc.stfx.eu/Neo/';
+				repository: 'http://mc.stfx.eu/Neo/';
 				versionString: #stable.
 		 ].
 	
