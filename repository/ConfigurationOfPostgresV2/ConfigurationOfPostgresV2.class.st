@@ -198,6 +198,24 @@ ConfigurationOfPostgresV2 >> baseline25: spec [
 		]
 ]
 
+{ #category : #catalog }
+ConfigurationOfPostgresV2 >> catalogContactInfo [
+
+	^'Maintained by the community, please send an email to the Pharo Development List <pharo-dev@lists.pharo.org>'
+]
+
+{ #category : #catalog }
+ConfigurationOfPostgresV2 >> catalogDescription [
+
+	  ^'PostgresV2 provides the required classes to connect and perform queries on PostgreSQL database servers using itstext-based protocol.'
+]
+
+{ #category : #catalog }
+ConfigurationOfPostgresV2 >> catalogKeywords [
+
+	^#('database' 'connectivity' 'postgres' 'sql')
+]
+
 { #category : #'symbolic versions' }
 ConfigurationOfPostgresV2 >> development: spec [ 
 	<symbolicVersion: #development>
