@@ -30,6 +30,24 @@ ConfigurationOfPostgresV2 class >> bootstrapPackage: aString from: aPath [
 			version workingCopy repositoryGroup addRepository: repository]
 ]
 
+{ #category : #catalog }
+ConfigurationOfPostgresV2 class >> catalogContactInfo [
+
+	^'Maintained by the community, please send an email to the Pharo Development List <pharo-dev@lists.pharo.org>'
+]
+
+{ #category : #catalog }
+ConfigurationOfPostgresV2 class >> catalogDescription [
+
+	  ^'PostgresV2 provides the required classes to connect and perform queries on PostgreSQL database servers using itstext-based protocol.'
+]
+
+{ #category : #catalog }
+ConfigurationOfPostgresV2 class >> catalogKeywords [
+
+	^#('database' 'connectivity' 'postgres' 'sql')
+]
+
 { #category : #private }
 ConfigurationOfPostgresV2 class >> ensureMetacello [
 	"Bootstrap Gofer (if necessary), load latest mcz file for ConfigurationOfMetacello (using old 
@@ -196,24 +214,6 @@ ConfigurationOfPostgresV2 >> baseline25: spec [
 		spec package: 'Cryptography' with: 
 				[ spec repository: 'http://www.squeaksource.com/Cryptography' ]
 		]
-]
-
-{ #category : #catalog }
-ConfigurationOfPostgresV2 >> catalogContactInfo [
-
-	^'Maintained by the community, please send an email to the Pharo Development List <pharo-dev@lists.pharo.org>'
-]
-
-{ #category : #catalog }
-ConfigurationOfPostgresV2 >> catalogDescription [
-
-	  ^'PostgresV2 provides the required classes to connect and perform queries on PostgreSQL database servers using itstext-based protocol.'
-]
-
-{ #category : #catalog }
-ConfigurationOfPostgresV2 >> catalogKeywords [
-
-	^#('database' 'connectivity' 'postgres' 'sql')
 ]
 
 { #category : #'symbolic versions' }
