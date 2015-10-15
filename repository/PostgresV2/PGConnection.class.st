@@ -1,30 +1,8 @@
 "
+Copyright (c) 2001-2003 by Yanni Chiu. All Rights Reserved.
+
 Instances of PGConnection implement a client interface to a PostgreSQL backend.
 See the ""Frontend/Backend Protocol"" chapter in the ""PostgreSQL Programmer's Guide"" for more information.
-
-
-!License
-Oringinally created by  in 2001-2003. Released under MIT.
-
-Copyright (c) 2001-2003 Yanni Chiu
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the ""Software""), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in
-all copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED ""AS IS"", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-THE SOFTWARE.
 "
 Class {
 	#name : #PGConnection,
@@ -46,7 +24,8 @@ Class {
 		'notificationSubscribers',
 		'fieldConverters',
 		'sqlStringConverter',
-		'receivingTextConverter'
+		'receivingTextConverter',
+		'timeout'
 	],
 	#classVars : [
 		'DefaultConnectionArgs',
@@ -81,9 +60,9 @@ PGConnection class >> buildDefaultConnectionArgs [
 	^ PGConnectionArgs
 		hostname: 'localhost'
 		portno: 5432
-		databaseName: 'sodbxtest'
-		userName: 'sodbxtest'
-		password: 'sodbxtest'
+		databaseName: 'test'
+		userName: 'postgres'
+		password: 'secret'
 
 ]
 
@@ -104,7 +83,7 @@ PGConnection class >> buildDefaultFieldConverters [
 		(integerArrayConveter (1005 "_int2[]" 1007 "_int4[]" 1016 "_int8[]"))
 		(stringArrayConveter (1009)) "doesn't handle nulls"
 		(floatConverter (700 "float4" 701 "float8" 1021 "_float4" 1022 "_float8")) "fix the array converter"
-		(numericConverter (1700 "numeric")) "fix it, it returns a float now"
+		(numericConverter (1700 "numeric"))
 		(dateConverter (1082 "date" 1182 "_date")) "fix the array converter"
 		(timeConverter (1083 "time" 1183 "_time")) "fix the array converter"
 		(timestampConverter (1114 "timestamp" 1115 "_timestamp")) "fix the array converter"
@@ -291,6 +270,11 @@ PGConnection class >> floatConverter [
 ]
 
 { #category : #converters }
+PGConnection class >> inetConverter [
+	^ [ :string | PGIPv4Address fromString: string ]
+]
+
+{ #category : #converters }
 PGConnection class >> integerArrayConveter [
 
 	^[:s | 
@@ -352,6 +336,9 @@ PGConnection class >> nextDateAndTimeFrom: string [
 		collect: [ :each | self nextDateAndTimeFrom: each ] "
 	
 	| stream parser parseInteger direction fractionalSeconds offset |
+	string = 'infinity' ifTrue: [ ^ InfiniteFuture new ].
+	string = '-infinity ' ifTrue: [ ^ InfinitePast new ].
+	
 	stream := ReadStream on: string.
 	parser := NumberParser on: stream.
 	parseInteger := [ :from :to | 
@@ -372,7 +359,9 @@ PGConnection class >> nextDateAndTimeFrom: string [
 			offsetStart <= string size
 				ifTrue: [	
 					direction := (string at: offsetStart) = $- ifTrue: [ -1 ] ifFalse: [ 1 ].
-					offset := Duration hours: (parseInteger value: offsetStart + 1 value: string size) * direction ] ].
+					offset := Duration hours: (parseInteger value: offsetStart + 1 value: string size) * direction.
+					string size >= (offsetStart + 4) ifTrue: [
+						offset := offset + ((parseInteger value: offsetStart + 4 value: string size) * direction) minutes ] ] ].
 	^ DateAndTime
 		year: (parseInteger value: 1 value: 4)
 		month: (parseInteger value: 6 value: 7)
@@ -413,9 +402,7 @@ PGConnection class >> nextStringFrom: readStream [
 
 { #category : #converters }
 PGConnection class >> numericConverter [
-	"This should convert the value to ScaledDecimal"
-
-	^[ :s | (Number readFrom: (ReadStream on: s)) asFloat ]
+	^ [ :s | ScaledDecimal fromSqlString: s ]
 ]
 
 { #category : #private }
@@ -515,15 +502,17 @@ PGConnection >> cancelRequest [
 
 ]
 
-{ #category : #'as yet unclassified' }
+{ #category : #accessing }
 PGConnection >> clientEncoding: aSymbol [
-
-	sqlStringConverter := [ :sqlString | 
-		sqlString convertToEncoding: aSymbol ].
-	receivingTextConverter := TextConverter newForEncoding: aSymbol.
-	#(25 1043) do: [ 	:each | 
-		self fieldConverters  at: each put: [ :s | 
-			s convertFromWithConverter: receivingTextConverter ] ].	
+	| symbol |
+	symbol := aSymbol
+		ifNil: [ #utf8 ]
+		ifNotNil: [ aSymbol ].
+	sqlStringConverter := [ :sqlString | sqlString convertToEncoding: symbol ].
+	receivingTextConverter := TextConverter newForEncoding: symbol.
+	#(25 1043) do: [ :each | 
+		self fieldConverters at: each put: [ :s | 
+			s convertFromWithConverter: receivingTextConverter ] ]
 
 ]
 
@@ -557,6 +546,11 @@ PGConnection >> connectionArgs [
 { #category : #accessing }
 PGConnection >> connectionArgs: aConnectionArgs [
 	connectionArgs := aConnectionArgs
+]
+
+{ #category : #private }
+PGConnection >> convertReceivingText: aString [
+	^ aString convertFromWithConverter: receivingTextConverter 
 ]
 
 { #category : #api }
@@ -654,6 +648,13 @@ PGConnection >> execute: sqlString [
 ]
 
 { #category : #api }
+PGConnection >> execute: sqlString timeout: aTimeout [
+	self timeout: aTimeout.
+	^ [ self execute: sqlString ]
+		ensure: [ self timeout: nil ]
+]
+
+{ #category : #api }
 PGConnection >> execute: sqlString withRowBlock: aRowBlock [
 	"Iterate thru resultset with block (for each row) without loading all bulk resultset data into memory (internal arrays). Implemented by database CURSORs.
 	Row block has 2 parameters: 
@@ -746,16 +747,6 @@ PGConnection >> isConnected [
 	^ socket notNil and: [ socket isConnected]
 ]
 
-{ #category : #accessing }
-PGConnection >> jsonConverter [
-	^self fieldConverterAt: 114
-]
-
-{ #category : #accessing }
-PGConnection >> jsonConverter: monadicValuable [
-	^self fieldConverterAt: 114 put: monadicValuable
-]
-
 { #category : #'private-actions' }
 PGConnection >> next [
 	readIndex >= lastReadIndex 
@@ -763,7 +754,7 @@ PGConnection >> next [
 			[trace >= 10 
 				ifTrue: [self log: 'next' text: '**** filling read buffer ****'].
 			"(Delay forMilliseconds: 500) wait."
-			socket waitForData. "For: Socket standardTimeout."
+			socket waitForDataFor: self timeout.
 			
 			[(lastReadIndex := socket receiveDataInto: readBuffer) = 0 
 				ifTrue: 
@@ -1030,6 +1021,7 @@ PGConnection >> stGotRowDescription: event [
 
 { #category : #'private-states' }
 PGConnection >> stQuerying: event [
+
 	self resetResult.
 	self sendPacket: (PGQuery sql: sql) on: socket.
 
@@ -1105,11 +1097,7 @@ PGConnection >> startup [
 	self connectionArgs isNil ifTrue: [
 		self connectionArgs: self class defaultConnectionArgs.
 	].
-	self connectionArgs clientEncoding ifNotNil: [
-		self clientEncoding: self connectionArgs clientEncoding.
-	] ifNil: [
-		self clientEncoding: #utf8
-	].
+	self clientEncoding: self connectionArgs clientEncoding.
 	self queueEvent: #Startup.
 	self saProcessEventsUntil: #(ReadyForQuery ConnectionFailed TerminalError UnsupportedAuthentication).
 	^ result
@@ -1122,4 +1110,14 @@ PGConnection >> terminate [
 	self queueEvent: #Terminate.
 	self saProcessEventsUntil: #(Terminated ConnectionFailed).
 
+]
+
+{ #category : #accessing }
+PGConnection >> timeout [
+	^timeout ifNil: [ Socket standardTimeout ]
+]
+
+{ #category : #accessing }
+PGConnection >> timeout: anObject [
+	timeout := anObject
 ]

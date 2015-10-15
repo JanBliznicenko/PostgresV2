@@ -56,13 +56,6 @@ TestPGConnection >> copy: sql withStream: aStream [
 ]
 
 { #category : #tests }
-TestPGConnection >> createJsonFieldConverterTable [
-
-	self executeAll: #('CREATE TABLE jsonfieldconvertertable (jsonField json)').
-
-]
-
-{ #category : #tests }
 TestPGConnection >> createTestCopyInOutTable [
 
 	self executeAll: #(
@@ -107,15 +100,6 @@ TestPGConnection >> createTestTable [
 				name text,
 				price numeric
 			)'
-		).
-
-]
-
-{ #category : #tests }
-TestPGConnection >> dropJsonFieldConverterTable [
-
-	self executeAll: #(
-			'DROP TABLE jsonfieldconvertertable'
 		).
 
 ]
@@ -368,28 +352,6 @@ TestPGConnection >> runRegressionTests [
 			ifFalse: [test do: [:each | self regress: each]]
 	]."
 
-]
-
-{ #category : #tests }
-TestPGConnection >> sampleJsonObject [
-	| jsonObject |
-	jsonObject := Dictionary new
-		at: 'string' put: 'Hello world';
-		at: 'number' put: 10;
-		at: 'float' put: 10.2;
-		at: 'boolean' put: true;
-		at: 'collection' put: #(1 2 3 5 8 11 19);
-		at: 'mixedCollection' put: #(1 'Hello' false);
-		yourself.
-	^ jsonObject
-]
-
-{ #category : #tests }
-TestPGConnection >> supportsJsonType: conn [
-	
-	^(conn execute: 'SELECT oid,typname from pg_type  WHERE oid = 114') rows size > 0
-	
-	
 ]
 
 { #category : #private }
@@ -714,53 +676,6 @@ TestPGConnection >> testFunctionCall3 [
 ]
 
 { #category : #tests }
-TestPGConnection >> testJsonFieldConverter [
-	| conn result data jsonObject |
-	
-	conn := self newConnection.
-	conn startup.
-	(self supportsJsonType: conn) ifFalse: [ 
-		conn terminate.
-		self skip].
-	self dropJsonFieldConverterTable.
-	self createJsonFieldConverterTable.
-	jsonObject := self sampleJsonObject.
-
-	result := conn execute: 'INSERT INTO jsonfieldconvertertable VALUES (' , (NeoJSONWriter toString: jsonObject) printString , ')'.
-	result := conn execute: 'SELECT * from jsonfieldconvertertable'.
-	conn terminate.
-	self assert: result rows size = 1.
-	data := result rows first data.	"result rows first inspect."
-	self assert: (data at: 1) class = Dictionary.
-	self assert: (data at: 1) = jsonObject.
-]
-
-{ #category : #tests }
-TestPGConnection >> testJsonFieldCustomConverter [
-	| conn result data jsonObject jsonString |
-	
-	conn := self newConnection.
-	conn startup.
-	(self supportsJsonType: conn) ifFalse: [ 
-		conn terminate.
-		self skip].
-	
-	"Uses a no-op coverter just to test whether it overrides the default converter"
-	conn jsonConverter: [:string | string ].
-
-	self dropJsonFieldConverterTable.
-	self createJsonFieldConverterTable.
-	jsonObject := self sampleJsonObject.
-	jsonString := NeoJSONWriter toString: jsonObject.
-	result := conn execute: 'INSERT INTO jsonfieldconvertertable VALUES (' , jsonString printString , ')'.
-	result := conn execute: 'SELECT * from jsonfieldconvertertable'.
-	conn terminate.
-	self assert: result rows size = 1.
-	data := result rows first data.	"result rows first inspect."
-	self assert: (data at: 1) = jsonString.
-]
-
-{ #category : #tests }
 TestPGConnection >> testNotify1 [
 
 	notificationSubscriberCount := 1.
@@ -792,7 +707,7 @@ TestPGConnection >> testNotify2 [
 	self createTestTable.
 
 	ws := WriteStream on: String new.
-	ws nextPutAll: (self makeCopyInOutLine: (Array with: '77' with: 'abcde' with: '123.456' with: '999.999')).
+	ws nextPutAll: (self makeCopyInOutLine: (Array with: '77' with: 'abcde' with: '123.456')).
 	ws nextPutAll: self makeCopyInOutEos.
 
 	conn := self newConnection.
@@ -802,7 +717,7 @@ TestPGConnection >> testNotify2 [
 
 ]
 
-{ #category : #'as yet unclassified' }
+{ #category : #tests }
 TestPGConnection >> testReadWriteWithEncoding [
 
 	| conn1 result1 |
