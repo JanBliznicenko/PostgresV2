@@ -216,12 +216,41 @@ ConfigurationOfPostgresV2 >> baseline25: spec [
 		]
 ]
 
+{ #category : #baselines }
+ConfigurationOfPostgresV2 >> baseline26: spec [ 
+	<version: '2.6-baseline'>
+ 
+	spec for: #pharo do: [ 
+		spec project: 'NeoJSON' with: [ 
+			spec 
+				className: #ConfigurationOfNeoJSON;
+				repository: 'http://mc.stfx.eu/Neo/';
+				versionString: #stable.
+		 ].
+	
+		spec package: #PostgresV2 with: [ spec requires: #('NeoJSON') ].
+	].
+       
+	spec for: #squeakCommon do: [
+		spec 
+			blessing: #baseline;
+               	description: '2.0 baseline for PostgresV2 in the new SmalltalkHub repository';
+			repository: 'http://smalltalkhub.com/mc/PharoExtras/PostgresV2/main'.
+		spec package: 'PostgresV2'.
+		].
+	
+	spec for: #squeak do: [
+		spec package: 'Cryptography' with: 
+				[ spec repository: 'http://www.squeaksource.com/Cryptography' ]
+		]
+]
+
 { #category : #'symbolic versions' }
 ConfigurationOfPostgresV2 >> development: spec [ 
 	<symbolicVersion: #development>
 	
 	spec for: #'pharo3.0.x' version: '2.4'.
-	spec for: #'pharo4.0.x' version: '2.5'.	
+	spec for: #'pharo4.0.x' version: '2.6-baseline'.	
 ]
 
 { #category : #accessing }
@@ -242,7 +271,7 @@ ConfigurationOfPostgresV2 >> stable: spec [
 	<symbolicVersion: #stable>
 	
 	spec for: #'pharo3.0.x' version: '2.3'.
-	spec for: #'pharo4.0.x' version: '2.5'.
+	spec for: #'pharo4.0.x' version: '2.6'.
 ]
 
 { #category : #versions }
@@ -340,6 +369,22 @@ ConfigurationOfPostgresV2 >> version25: spec [
 		spec author: 'EstebanMaringolo'.
 		spec blessing: #stable.
 		spec package: 'PostgresV2' with: 'PostgresV2-EstebanMaringolo.34'.
+	].
+
+	spec for:  #squeak do: [
+		spec package: 'Cryptography' with: 'Cryptography-mtf.36'.	
+	]
+]
+
+{ #category : #versions }
+ConfigurationOfPostgresV2 >> version26: spec [
+	<version: '2.6' imports: #('2.6-baseline')>
+	
+	spec for: #common do: [
+		spec description: 'Changes dependendency from PharoExtras/JSON to NeoJSON for JSON native datatype'.
+		spec author: 'EstebanMaringolo'.
+		spec blessing: #stable.
+		spec package: 'PostgresV2' with: 'PostgresV2-EstebanMaringolo.47'.
 	].
 
 	spec for:  #squeak do: [
