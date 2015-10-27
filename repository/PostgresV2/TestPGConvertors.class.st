@@ -41,7 +41,7 @@ TestPGConvertors >> testTimestampWithTimezoneConverter [
 	self assert: o1 offset hours = 2.
 	self assert: o1 offset minutes = 0.
 	self assert: o1 offset seconds = 0.
-	self assert: o1 asSqlString = '2007-06-25T11:12:22.802085+02:00'.
+	self assert: o1 asString = '2007-06-25T11:12:22.802085+02:00'.
 	
 	self shouldnt: [ o2 := PGConnection timestampWithTimezoneConverter value: t2 ] raise: Error.
 	self assert: o2 year = 2009.
@@ -54,7 +54,7 @@ TestPGConvertors >> testTimestampWithTimezoneConverter [
 	self assert: o2 offset hours = 1.
 	self assert: o2 offset minutes = 0.
 	self assert: o2 offset seconds = 0.
-	self assert: o2 asSqlString =  '2009-12-14T18:08:24+01:00'.
+	self assert: o2 asString =  '2009-12-14T18:08:24+01:00'.
 	
 	self shouldnt: [ o3 := PGConnection timestampWithTimezoneConverter value: t3 ] raise: Error.
 	self assert: o3 year = 2009.
@@ -67,12 +67,12 @@ TestPGConvertors >> testTimestampWithTimezoneConverter [
 	self assert: o3 offset hours = -8.
 	self assert: o3 offset minutes = -30.
 	self assert: o3 offset seconds = 0.
-	self assert: o3 asSqlString = '2009-12-14T03:04:05-08:30'.
+	self assert: o3 asString = '2009-12-14T03:04:05-08:30'.
 	
 	self shouldnt: [ o4 := PGConnection timestampWithTimezoneConverter value: t4 ] raise: Error.
 	self assert: o4 offset hours = -3.
 	self assert: o4 offset minutes = 0.
 	self assert: o4 offset seconds = 0.
 	self assert: o4 nanoSecond = 789000000.
-	self assert: o4 asSqlString = '2009-12-14T04:05:06.789-03:00'
+	self assert: o4 asString = '2009-12-14T04:05:06.789-03:00'
 ]

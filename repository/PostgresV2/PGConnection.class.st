@@ -747,6 +747,16 @@ PGConnection >> isConnected [
 	^ socket notNil and: [ socket isConnected]
 ]
 
+{ #category : #accessing }
+PGConnection >> jsonConverter [
+	^self fieldConverterAt: 114
+]
+
+{ #category : #accessing }
+PGConnection >> jsonConverter: monadicValuable [
+	^self fieldConverterAt: 114 put: monadicValuable
+]
+
 { #category : #'private-actions' }
 PGConnection >> next [
 	readIndex >= lastReadIndex 
@@ -1097,7 +1107,11 @@ PGConnection >> startup [
 	self connectionArgs isNil ifTrue: [
 		self connectionArgs: self class defaultConnectionArgs.
 	].
-	self clientEncoding: self connectionArgs clientEncoding.
+	self connectionArgs clientEncoding ifNotNil: [
+		self clientEncoding: self connectionArgs clientEncoding.
+	] ifNil: [
+		self clientEncoding: #utf8
+	].
 	self queueEvent: #Startup.
 	self saProcessEventsUntil: #(ReadyForQuery ConnectionFailed TerminalError UnsupportedAuthentication).
 	^ result
