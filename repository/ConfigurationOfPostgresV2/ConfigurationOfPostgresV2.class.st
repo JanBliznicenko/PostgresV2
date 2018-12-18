@@ -217,6 +217,29 @@ ConfigurationOfPostgresV2 >> baseline25: spec [
 ]
 
 { #category : #baselines }
+ConfigurationOfPostgresV2 >> baseline261: spec [
+	<version: '2.6.1-baseline'>
+	spec
+		for: #pharo
+		do: [ spec
+				baseline: 'NeoJSON'
+				with: [ spec repository: 'github://svenvc/NeoJSON/repository' ].
+			spec package: #PostgresV2 with: [ spec requires: #('NeoJSON') ] ].
+	spec
+		for: #squeakCommon
+		do: [ spec
+				blessing: #baseline;
+				description: '2.0 baseline for PostgresV2 in the new SmalltalkHub repository';
+				repository: 'http://smalltalkhub.com/mc/PharoExtras/PostgresV2/main'.
+			spec package: 'PostgresV2' ].
+	spec
+		for: #squeak
+		do: [ spec
+				package: 'Cryptography'
+				with: [ spec repository: 'http://www.squeaksource.com/Cryptography' ] ]
+]
+
+{ #category : #baselines }
 ConfigurationOfPostgresV2 >> baseline26: spec [ 
 	<version: '2.6-baseline'>
  
@@ -246,11 +269,14 @@ ConfigurationOfPostgresV2 >> baseline26: spec [
 ]
 
 { #category : #'symbolic versions' }
-ConfigurationOfPostgresV2 >> development: spec [ 
+ConfigurationOfPostgresV2 >> development: spec [
 	<symbolicVersion: #development>
 	
-	spec for: #'pharo3.0.x' version: '2.4'.
-	spec for: #'pharo4.0.x' version: '2.6-baseline'.	
+	spec for: #'pharo3.x' version: '2.4'.
+	spec for: #'pharo4.x' version: '2.6-baseline'.
+	spec for: #'pharo5.x' version: '2.6-baseline'.
+	spec for: #'pharo6.x' version: '2.6.1-baseline'.
+	spec for: #'pharo7.x' version: '2.6.1-baseline'
 ]
 
 { #category : #accessing }
@@ -267,11 +293,13 @@ ConfigurationOfPostgresV2 >> project [
 ]
 
 { #category : #'symbolic versions' }
-ConfigurationOfPostgresV2 >> stable: spec [ 
+ConfigurationOfPostgresV2 >> stable: spec [
 	<symbolicVersion: #stable>
 	
-	spec for: #'pharo3.0.x' version: '2.3'.
-	spec for: #'pharo4.0.x' version: '2.6'.
+	spec for: #'pharo3.x' version: '2.3'.
+	spec for: #'pharo4.x' version: '2.6'.
+	spec for: #'pharo5.x' version: '2.6'.
+	spec for: #'pharo6.x' version: '2.6.1'
 ]
 
 { #category : #versions }
@@ -369,6 +397,22 @@ ConfigurationOfPostgresV2 >> version25: spec [
 		spec author: 'EstebanMaringolo'.
 		spec blessing: #stable.
 		spec package: 'PostgresV2' with: 'PostgresV2-EstebanMaringolo.34'.
+	].
+
+	spec for:  #squeak do: [
+		spec package: 'Cryptography' with: 'Cryptography-mtf.36'.	
+	]
+]
+
+{ #category : #versions }
+ConfigurationOfPostgresV2 >> version261: spec [
+	<version: '2.6.1' imports: #('2.6.1-baseline')>
+	
+	spec for: #common do: [
+		spec description: 'Changes dependendency from PharoExtras/JSON to NeoJSON for JSON native datatype'.
+		spec author: 'EstebanMaringolo'.
+		spec blessing: #stable.
+		spec package: 'PostgresV2' with: 'PostgresV2-EstebanMaringolo.47'.
 	].
 
 	spec for:  #squeak do: [
