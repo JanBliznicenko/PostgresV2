@@ -276,7 +276,9 @@ ConfigurationOfPostgresV2 >> development: spec [
 	spec for: #'pharo4.x' version: '2.6-baseline'.
 	spec for: #'pharo5.x' version: '2.6-baseline'.
 	spec for: #'pharo6.x' version: '2.6.1-baseline'.
-	spec for: #'pharo7.x' version: '2.6.1-baseline'
+	spec for: #'pharo7.x' version: '2.6.1-baseline'.
+	spec for: #'pharo8.x' version: '2.6.1-baseline'.
+	spec for: #'pharo9.x' version: '2.6.1-baseline'
 ]
 
 { #category : #accessing }
@@ -299,7 +301,10 @@ ConfigurationOfPostgresV2 >> stable: spec [
 	spec for: #'pharo3.x' version: '2.3'.
 	spec for: #'pharo4.x' version: '2.6'.
 	spec for: #'pharo5.x' version: '2.6'.
-	spec for: #'pharo6.x' version: '2.6.1'
+	spec for: #'pharo6.x' version: '2.6.1'.
+	spec for: #'pharo7.x' version: '2.6.1'.
+	spec for: #'pharo8.x' version: '2.6.1'.
+	spec for: #'pharo9.x' version: '2.6.1'
 ]
 
 { #category : #versions }
